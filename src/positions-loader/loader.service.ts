@@ -99,7 +99,7 @@ export class LoaderService {
             this.latestBlockNumber = blockTo;
 
             if (this.latestBlockNumber >= this.latestChainBlock) {
-                sleep(60000);
+                await sleep(60000);
                 this.logger.log('sleep')
                 this.latestChainBlock = await this.client.eth.getBlockNumber();
             }
