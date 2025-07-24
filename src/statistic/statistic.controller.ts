@@ -16,13 +16,13 @@ export class StatisticController {
       return this.statisticService.getPositionByWallet(query.walletId);
     } 
 
-    return this.statisticService.getPosition(id);
+    return this.statisticService.getInfoByPosition(id);
   }
 
-  // @Get('/wallets/:id')
-  // getWallet(@Param('id') id: string) {
-  //   return this.statisticService.getWallet(id);
-  // }
+  @Get('/wallets/:id')
+  getWallet(@Param('id') id: string) {
+    return this.statisticService.getStatisticByWallet(id);
+  }
 
   @Get('/positions')
   getPositions() {
@@ -37,5 +37,10 @@ export class StatisticController {
   @Get('/grouped-by-ticks/:id')
   getGroupedByTicks(@Param('id') id: string) {
     return this.statisticService.getExtendedStatisticByTicks(Number(id));
+  }
+
+  @Get('/events')
+  getEvents(@Query() query: any) {
+    return this.statisticService.getEvents(query);
   }
 }

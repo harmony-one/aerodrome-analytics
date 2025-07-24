@@ -51,8 +51,11 @@ export function calculateImpermanentLoss({
     };
 }
 
+const initialBlock = 30152681;
+const initialTimestamp = 1747094709;
+
 // Функция для перевода номера блока в timestamp
-export function blockToTimestamp(blockNumber, initialBlock, initialTimestamp, averageBlockTime = 2) {
+export function blockToTimestamp(blockNumber, initialBlock = 30152681, initialTimestamp = 1747094709, averageBlockTime = 2) {
     // Вычисляем разницу в блоках
     let blockDiff = blockNumber - initialBlock;
 

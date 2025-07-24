@@ -24,7 +24,7 @@ export class LoaderService {
     blocksInterval = 5000;
 
     private client = this.web3Service.getClient('base');
-    
+
     latestChainBlock = 0;
     latestRequestTime = 0;
 
@@ -56,51 +56,52 @@ export class LoaderService {
 
     loadData = async (poolAddress: string) => {
         try {
-            const blockFrom = this.latestBlockNumber;
-            const blockTo = Math.min(blockFrom + this.blocksInterval, this.latestChainBlock);
+            if (this.latestBlockNumber < this.latestChainBlock) {
+                const blockFrom = this.latestBlockNumber;
+                const blockTo = Math.min(blockFrom + this.blocksInterval, this.latestChainBlock);
 
-            let skip = 0;
-            let data = [];
+                let skip = 0;
+                let data = [];
 
-            const start = Date.now();
+                const start = Date.now();
 
-            while (true) {
-                const newData = await getPositions({
-                    first: 1000,
-                    skip: skip,
-                    filter: {
-                        poolAddress: poolAddress,
-                        blockNumber_gt: blockFrom,
-                        blockNumber_lte: blockTo,
+                while (true) {
+                    const newData = await getPositions({
+                        first: 1000,
+                        skip: skip,
+                        filter: {
+                            poolAddress: poolAddress,
+                            blockNumber_gt: blockFrom,
+                            blockNumber_lte: blockTo,
+                        }
+                    }, this.configService.get('thegraph'))
+
+                    data = data.concat(newData);
+
+                    // this.logger.log(`${this.getProgress()}% skip=${skip} blockFrom=${blockFrom} blockTo=${blockTo} newData=${newData.length}`);
+
+                    if (newData.length < 1000) {
+                        break;
+                    } else {
+                        skip += 1000;
                     }
-                }, this.configService.get('thegraph'))
-
-                data = data.concat(newData);
-
-                // this.logger.log(`${this.getProgress()}% skip=${skip} blockFrom=${blockFrom} blockTo=${blockTo} newData=${newData.length}`);
-
-                if (newData.length < 1000) {
-                    break;
-                } else {
-                    skip += 1000;
                 }
-            }
 
-            if (data.length > 0) {
-                await Promise.all(data.map(
-                    async (item) => await this.addData(item, poolAddress)
-                ));
-            }
+                if (data.length > 0) {
+                    await Promise.all(data.map(
+                        async (item) => await this.addData(item, poolAddress)
+                    ));
+                }
 
-            this.latestRequestTime = (Date.now() - start) / 1000;
+                this.latestRequestTime = (Date.now() - start) / 1000;
 
-            // this.logger.log(`${this.getProgress()}% blockFrom=${blockFrom} blockTo=${blockTo} newData=${data.length}`);
+                // this.logger.log(`${this.getProgress()}% blockFrom=${blockFrom} blockTo=${blockTo} newData=${data.length}`);
 
-            this.latestBlockNumber = blockTo;
+                this.latestBlockNumber = blockTo;
 
-            if (this.latestBlockNumber >= this.latestChainBlock) {
+            } else {
                 await sleep(60000);
-                this.logger.log('sleep')
+                // this.logger.log('sleep')
                 this.latestChainBlock = await this.client.eth.getBlockNumber();
             }
         } catch (e) {
@@ -134,7 +135,7 @@ export class LoaderService {
     }
 
     getProgress = () =>
-        ((this.latestBlockNumber - this.startBlockNumber) / (this.latestChainBlock - this.startBlockNumber) * 100).toFixed(4);
+        ((this.latestBlockNumber - this.startBlockNumber) / (this.latestChainBlock - this.startBlockNumber) * 100).toFixed(2);
 
     getCount(): Promise<number> {
         return this.repository.count();
@@ -164,7 +165,7 @@ export class LoaderService {
         const count = await this.getCount();
         const timeToLoad = this.latestRequestTime * (this.latestChainBlock - this.latestBlockNumber) / this.blocksInterval;
         const timeToLoadFormatted = moment.duration(timeToLoad, 'seconds').humanize();
-        
+
         return {
             count: count,
             latestBlockNumber: this.latestBlockNumber,

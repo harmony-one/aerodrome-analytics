@@ -129,14 +129,16 @@ export class EventTrackerService {
   };
 
   readEvents = async () => {
+    let from, to;
+
     try {
       const start = Date.now();
 
       this.lastNodeBlock = await this.web3.eth.getBlockNumber();
 
       if (this.lastNodeBlock > this.lastBlock) {
-        const from = this.lastBlock;
-        const to =
+        from = this.lastBlock;
+        to =
           from + this.blocksInterval > this.lastNodeBlock
             ? this.lastNodeBlock
             : from + this.blocksInterval;
@@ -214,17 +216,19 @@ export class EventTrackerService {
         this.latestRequestTime = (Date.now() - start) / 1000;
       } else {
         await this.onComplete();
-        await sleep(20);
+        await sleep(60000);
       }
     } catch (e) {
-      this.logger.error('Error getEvents', { error: e, message: e.message });
+      this.logger.error('Error getEvents', {
+        from, to, lastNodeBlock: this.lastNodeBlock, lastBlock: this.lastBlock, error: e, message: e.message
+      });
     }
 
     setTimeout(this.readEvents, this.waitInterval);
   };
 
   getProgress = () =>
-    ((this.lastBlock - this.startBlock) / (this.lastNodeBlock - this.startBlock) * 100).toFixed(4);
+    ((this.lastBlock - this.startBlock) / (this.lastNodeBlock - this.startBlock) * 100).toFixed(2);
 
   getInfo = () => {
     const timeToLoad = this.latestRequestTime * (this.lastNodeBlock - this.lastBlock) / this.blocksInterval;

@@ -1,9 +1,124 @@
 import { blockToTimestamp } from "./utils";
+import { IDepositEvent, IWithdrawEvent, IClaimRewardsEvent } from "./interfaces";
+import { get } from 'lodash';
 
 const initialBlock = 30152681;
 const initialTimestamp = 1747094709;
 
+const combineByParam = (arr: any[], param: string, condition: (item: any) => boolean) => {
+    return arr.reduce((acc, curr) => {
+        const id = get(curr, param);
+
+        if (condition(curr)) {
+            acc[id] = acc[id] || [];
+            acc[id].push(curr);
+        }
+
+        return acc;
+    }, {});
+}
+
+// const rewardsByGroups = (rewardsDb: any[]) => {
+//     const rewardsWithdraws: Record<string, IWithdrawEvent[]> = {};
+//     const rewardsDeposits: Record<string, IDepositEvent[]> = {};
+
+//     rewardsDb.forEach((r: any) => {
+//         if (r.eventName === 'Withdraw') {
+//             if (!rewardsWithdraws[r.eventValues.user]) {
+//                 rewardsWithdraws[r.eventValues.user] = [];
+//             }
+
+//             rewardsWithdraws[r.eventValues.user].push(r);
+//         }
+
+//         if (r.eventName === 'Deposit') {
+//             if (!rewardsDeposits[r.eventValues.user]) {
+//                 rewardsDeposits[r.eventValues.user] = [];
+//             }
+
+//             rewardsDeposits[r.eventValues.user].push(r);
+//         }
+//     })
+
+//     return {
+//         rewardsWithdraws,
+//         rewardsDeposits,
+//     }
+// }
+
+export const compileReward = (params: {
+    claimReward: IClaimRewardsEvent,
+    rewardsWithdraws: Record<string, IWithdrawEvent[]>,
+    rewardsDeposits: Record<string, IDepositEvent[]>
+}) => {
+    const { claimReward, rewardsWithdraws, rewardsDeposits } = params;
+
+    let withdraw: IWithdrawEvent | null = null;
+
+    if (!rewardsWithdraws[claimReward.eventValues.from]) {
+        // console.log('No withdraws for user', claimRewards.eventValues.from);
+    } else {
+        // console.log('Withdraws for user', claimRewards.eventValues.from, rewardsWithdraws[claimRewards.eventValues.from].length);
+
+        withdraw = rewardsWithdraws[claimReward.eventValues.from].find(
+            (w: IWithdrawEvent) =>
+                claimReward.eventValues.from === w.eventValues.user &&
+                claimReward.blockNumber <= w.blockNumber
+        );
+    }
+
+    let deposit: IDepositEvent | null = null;
+
+    if (!rewardsDeposits[claimReward.eventValues.from]) {
+        // console.log('No deposits for user', claimRewards.eventValues.from);
+    } else {
+        // console.log('Deposits for user', claimRewards.eventValues.from, rewardsDeposits[claimRewards.eventValues.from].length);
+
+        deposit = rewardsDeposits[claimReward.eventValues.from].find(
+            (w: IDepositEvent) =>
+                claimReward.eventValues.from === w.eventValues.user &&
+                claimReward.blockNumber >= w.blockNumber
+        );
+    }
+
+    const tokenId = withdraw?.eventValues.tokenId || deposit?.eventValues.tokenId;
+    const user = claimReward.eventValues.from;
+    const amount = Number(claimReward.eventValues.amount) / 1e18;
+    const id = claimReward.id;
+
+    if (!withdraw || !deposit) {
+        return null;
+    }
+
+    return {
+        timestamp: blockToTimestamp(claimReward.blockNumber, initialBlock, initialTimestamp),
+        id: id,
+        blockNumber: claimReward.blockNumber,
+        tokenId: tokenId,
+        "receiver": user,
+        "rewardAmount": amount,
+        wallet: user,
+        "rewardToken": {
+            "id": "0x940181a94A35A4569E4529A3CDfB74e38FD98631",
+            "symbol": "AERO"
+        },
+        "transaction": {
+            id: id,
+            blockNumber: claimReward.blockNumber,
+            timestamp: blockToTimestamp(claimReward.blockNumber, initialBlock, initialTimestamp),
+        },
+        "gauge": {
+            "id": "0xf8440c989c72751c3a36419e61b6f62dfeb7630e"
+        }
+    };
+}
+
 export const compileRewards = async (rewardsDb: any[]) => {
+    const withdrawsByUser = combineByParam(rewardsDb, 'eventValues.user', (r: any) => r.eventName === 'Withdraw');
+    const depositsByUser = combineByParam(rewardsDb, 'eventValues.user', (r: any) => r.eventName === 'Deposit');
+
+    const withdrawsByTokenId = combineByParam(rewardsDb, 'eventValues.tokenId', (r: any) => r.eventName === 'Withdraw');
+
     const rewardsClaimRewards = {};
     const rewardsWithdraw = {};
 
@@ -29,8 +144,8 @@ export const compileRewards = async (rewardsDb: any[]) => {
 
     const rewards = [];
 
-    Object.keys(rewardsWithdraw).forEach((id: string) => {
-        if (rewardsClaimRewards[id]) {
+    Object.keys(rewardsClaimRewards).forEach((id: string) => {
+        if (rewardsWithdraw[id]) {
             const claimRewards = rewardsClaimRewards[id];
             const withdraw = rewardsWithdraw[id];
 
@@ -55,8 +170,28 @@ export const compileRewards = async (rewardsDb: any[]) => {
                     "id": "0xf8440c989c72751c3a36419e61b6f62dfeb7630e"
                 }
             });
+        } else {
+            // console.log('No withdraw for id', id);
+
+            const claimReward = rewardsClaimRewards[id];
+
+            const reward = compileReward({
+                claimReward,
+                rewardsWithdraws: withdrawsByUser,
+                rewardsDeposits: depositsByUser
+            });
+
+            if (reward) {
+                rewards.push(reward);
+            } else {
+                // console.log('No reward data for id', id);
+            }
         }
     })
 
-    return rewards;
+    console.log('RewardsClaimRewards', Object.keys(rewardsClaimRewards).length);
+    console.log('RewardsWithdraw', Object.keys(rewardsWithdraw).length);
+    console.log('Rewards', rewards.length);
+
+    return { rewards, rewardsWithdraw: withdrawsByTokenId };
 }

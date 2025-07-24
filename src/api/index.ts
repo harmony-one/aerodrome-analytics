@@ -126,6 +126,8 @@ export const getPositions = async (params: GetEventsParams, config: TheGraphConf
   })
 
   if(!data?.data?.positions) {
+    console.log(getPositionsQuery(params)); 
+    
     throw new Error(data?.message || data);
   }
 

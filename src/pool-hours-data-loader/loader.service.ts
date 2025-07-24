@@ -64,7 +64,7 @@ export class LoaderService {
                 // this.logger.log(`new=${data.length}, total=${count}`)
                 // this.logger.log(`from=${moment(data[0]?.periodStartUnix * 1000).format('YYYY-MM-DD HH:mm:ss')} to=${moment(data[data.length - 1]?.periodStartUnix * 1000).format('YYYY-MM-DD HH:mm:ss')}`);
             } else {
-                this.logger.log('sleep 50 seconds')
+                // this.logger.log('sleep 50 seconds')
                 await sleep(50000);
             }
         } catch (e) {
@@ -139,7 +139,7 @@ export class LoaderService {
         const timeToLoad = this.latestRequestTime * hoursLeft / 1000;       
         const timeToLoadFormatted = moment.duration(timeToLoad, 'seconds').humanize();
 
-        const progress = ((latestData.periodStartUnix - firstData.periodStartUnix) / (Date.now() / 1000 - firstData.periodStartUnix) * 100).toFixed(4);
+        const progress = ((latestData.periodStartUnix - firstData.periodStartUnix) / (Date.now() / 1000 - firstData.periodStartUnix) * 100).toFixed(2);
 
         return {
             latestError: this.latestError,

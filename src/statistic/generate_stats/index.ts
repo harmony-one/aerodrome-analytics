@@ -1,8 +1,10 @@
-import { calculateImpermanentLoss, rewardTokens, timestampToStartOfHour } from "./utils";
+import { blockToTimestamp, calculateImpermanentLoss, rewardTokens, timestampToStartOfHour } from "./utils";
+import { IEvent } from "../../interfaces";
 
 export const calculateStats = async (
     positionsDb: any[],
     rewardsDb: any[],
+    rewardsWithdraw: Record<string, IEvent[]>,
     poolHoursDatasDb: any[]
 ) => {
     let positions: any = positionsDb;
@@ -24,6 +26,11 @@ export const calculateStats = async (
         return acc;
     }, {});
 
+    const rewardsByWallet = rewards.reduce((acc: any, curr: any) => {
+        acc[curr.tokenId] = [].concat(acc[curr.tokenId] || [], curr);
+        return acc;
+    }, {});
+
     positions = positions.map((p: any, idx: number) => {
         if (idx % 1000 === 0) {
             // console.log('positionsFinal: ', idx / positions.length * 100, '%');
@@ -38,12 +45,22 @@ export const calculateStats = async (
         let closePrice = poolHoursData[poolHoursDataStartIndex].token0Price;
         let closeDate = p.transaction.timestamp;
 
-        for (let i = poolHoursDataStartIndex; i < poolHoursData.length; i++) {
-            if (Number(poolHoursData[i].tick) >= Number(p.tickLower.tickIdx) && Number(poolHoursData[i].tick) <= Number(p.tickUpper.tickIdx)) {
-            } else {
-                closePrice = poolHoursData[i].token0Price;
-                closeDate = poolHoursData[i].periodStartUnix;
-                break;
+        let withdrawDate = rewardsWithdraw[p.id]?.[0]?.blockNumber ? 
+            blockToTimestamp(rewardsWithdraw[p.id]?.[0]?.blockNumber) : 
+            null;
+
+        if (withdrawDate) {
+            const data = poolHoursDataByHour[timestampToStartOfHour(withdrawDate)];
+            closePrice = data.token0Price;
+            closeDate = withdrawDate;
+        } else {
+            for (let i = poolHoursDataStartIndex; i < poolHoursData.length; i++) {
+                if (Number(poolHoursData[i].tick) >= Number(p.tickLower.tickIdx) && Number(poolHoursData[i].tick) <= Number(p.tickUpper.tickIdx)) {
+                } else {
+                    closePrice = poolHoursData[i].token0Price;
+                    closeDate = poolHoursData[i].periodStartUnix;
+                    break;
+                }
             }
         }
 
@@ -116,7 +133,7 @@ export const calculateStats = async (
         const inRange = Math.round((hoursInRange / (duration / 3600)) * 100);
 
         const depositedUSD = (Number(p.depositedToken0) * 1 + Number(p.depositedToken1) * p.openPrice);
-
+        
         return {
             ...p,
             apr_staking: (((p.totalUSD / depositedUSD) * (365 / daysElapsed)) * 100).toFixed(2),

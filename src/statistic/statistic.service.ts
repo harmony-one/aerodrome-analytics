@@ -5,6 +5,7 @@ import { EventA, Position, PoolHourData } from 'src/entities';
 import { IEvent, IPosition, ICompiledPosition, IPoolHourDatas } from 'src/interfaces';
 import { calculateStats } from './generate_stats/index';
 import { compileRewards } from './generate_stats/rewards-utils';
+
 @Injectable()
 export class StatisticService {
     private readonly logger = new Logger(StatisticService.name);
@@ -14,6 +15,7 @@ export class StatisticService {
     // poolHoursDatas: IPoolHourDatas[] = [];
 
     compiledPositions: ICompiledPosition[] = [];
+    rewards: any[] = [];
 
     constructor(
         @InjectRepository(Position)
@@ -41,10 +43,12 @@ export class StatisticService {
             'Loading events from db'
         );
 
-        let rewardsFromDb = await this.startFn(
+        const { rewards, rewardsWithdraw } = await this.startFn(
             () => compileRewards(eventsFromDb),
             'Compiling rewards'
         );
+
+        this.rewards = rewards;
 
         eventsFromDb = null;
 
@@ -64,6 +68,9 @@ export class StatisticService {
                 () => this.positionsRepository.find({
                     skip,
                     take: limit,
+                    order: {
+                        blockNumber: 'ASC'
+                    }
                 }),
                 'Loading positions from db'
             );
@@ -71,7 +78,8 @@ export class StatisticService {
             const res = await this.startFn(
                 () => calculateStats(
                     positionsFromDb.map(p => ({ ...p.metadata })),
-                    rewardsFromDb,
+                    this.rewards,
+                    rewardsWithdraw,
                     poolHoursDatasFromDb
                 ),
                 `Calculating stats ${skip} - ${skip + limit}`
@@ -86,7 +94,7 @@ export class StatisticService {
 
         // clear all data
         eventsFromDb = null;
-        rewardsFromDb = null;
+        // rewardsFromDb = null;
         poolHoursDatasFromDb = null;
         positionsFromDb = null;
     }
@@ -156,5 +164,57 @@ export class StatisticService {
         });
 
         return groupedByTicks;
+    }
+
+    async getInfoByPosition(positionId: string) {
+        const compiledPositions = this.compiledPositions.filter(p => String(p.id) === String(positionId));
+
+        const eventsFromDb = await this.eventsRepository.find({
+            where: {
+                tokenId: positionId,
+            },
+        });
+
+        const positionsDb = await this.positionsRepository.find({
+            where: {
+                id: positionId,
+            },
+        });
+
+        const compiledRewards = this.rewards.filter(r => String(r.tokenId) === String(positionId));
+
+        return {
+            compiledPositions,
+            eventDb: eventsFromDb,
+            positionsDb,
+            compiledRewards
+        }
+    }
+
+    async getStatisticByWallet(walletId: string) {
+        const compiledPositions = this.compiledPositions.filter(p => p.wallet === walletId);
+
+        const eventsFromDb = await this.eventsRepository.find({
+            where: {
+                user: walletId,
+            },
+        });
+
+        const compiledRewards = this.rewards.filter(r => String(r.wallet).toLowerCase() === String(walletId).toLowerCase());
+
+        return {
+            compiledPositions,
+            events: eventsFromDb,
+            compiledRewards
+        }
+    }
+
+    async getEvents({ limit = 1000, skip = 0 }: { limit: number, skip: number }) {
+        const eventsFromDb = await this.eventsRepository.find({
+            skip,
+            take: limit,
+        });
+
+        return eventsFromDb;
     }
 }
