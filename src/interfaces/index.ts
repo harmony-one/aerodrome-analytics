@@ -97,3 +97,15 @@ export interface IPoolHourDatas {
     volumeToken1: string;
   }
   
+export interface IGetQueryParams {
+    skip?: number;
+    limit?: number;
+    blockNumberFrom?: number;
+    blockNumberTo?: number;
+    timestampFrom?: string;
+    timestampTo?: string;
+    order?: 'ASC' | 'DESC';
+    sortBy?: 'blockNumber' | 'timestamp';
+    wallet?: string;
+    positionId?: string;
+}

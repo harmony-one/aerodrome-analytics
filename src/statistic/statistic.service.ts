@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { EventA, Position, PoolHourData } from 'src/entities';
 import { IEvent, IPosition, ICompiledPosition, IPoolHourDatas } from 'src/interfaces';
 import { calculateStats } from './generate_stats/index';
 import { compileRewards } from './generate_stats/rewards-utils';
+import { IGetQueryParams } from 'src/interfaces';
 
 @Injectable()
 export class StatisticService {
@@ -110,14 +111,6 @@ export class StatisticService {
 
     //////////
 
-    getPositions() {
-        return this.compiledPositions.slice(0, 100);
-    }
-
-    getPosition(id: string) {
-        return this.compiledPositions.find(p => p.id === id);
-    }
-
     getPositionByWallet(walletId: string) {
         return this.compiledPositions.filter(p => p.wallet === walletId);
     }
@@ -209,12 +202,159 @@ export class StatisticService {
         }
     }
 
-    async getEvents({ limit = 1000, skip = 0 }: { limit: number, skip: number }) {
-        const eventsFromDb = await this.eventsRepository.find({
+    generateFindParams(params: IGetQueryParams) {
+        const { 
+            limit = 100, 
+            skip = 0, 
+            order = 'DESC', 
+            sortBy = 'blockNumber',
+            blockNumberFrom, 
+            blockNumberTo, 
+            timestampFrom, 
+            timestampTo, 
+            wallet, 
+            positionId 
+        } = params;
+
+        const res = {
             skip,
             take: limit,
-        });
+            order: {
+                [sortBy]: order,
+            },
+            where: {} as any,
+        }
 
-        return eventsFromDb;
+        if(blockNumberFrom && blockNumberTo) {
+            res.where.blockNumber = Between(Number(blockNumberFrom), Number(blockNumberTo));
+        } else if (blockNumberFrom) {
+            res.where.blockNumber = MoreThanOrEqual(Number(blockNumberFrom));
+        } else if (blockNumberTo) {
+            res.where.blockNumber = LessThanOrEqual(Number(blockNumberTo));
+        }
+
+        if (timestampFrom && timestampTo) {
+            res.where.timestamp = Between(timestampFrom, timestampTo);
+        } else if (timestampFrom) {
+            res.where.timestamp = MoreThanOrEqual(timestampFrom);
+        } else if (timestampTo) {
+            res.where.timestamp = LessThanOrEqual(timestampTo);
+        }
+
+        if (wallet) {
+            res.where.user = wallet;
+        }   
+
+        if (positionId) {
+            res.where.id = positionId;
+        }
+        
+        return res;
+    }
+
+    getPositions(params: IGetQueryParams) {
+        return this.positionsRepository.find(this.generateFindParams(params));
+    }
+
+    getEvents(params: IGetQueryParams) {
+        return this.eventsRepository.find(this.generateFindParams(params));
+    }
+
+    getCompiledPositions(params: IGetQueryParams) {
+        const { 
+            limit = 100, 
+            skip = 0, 
+            order = 'DESC', 
+            sortBy = 'blockNumber',
+        } = params;
+
+        return this.compiledPositions
+            .filter(p => {
+                let isMatch = true;
+
+                if(params.wallet) {
+                    isMatch = isMatch && p.wallet === params.wallet;
+                }
+
+                if(params.positionId) {
+                    isMatch = isMatch && p.id === params.positionId;
+                }
+
+                if(params.blockNumberFrom) {
+                    isMatch = isMatch && Number(p.transaction.blockNumber) >= Number(params.blockNumberFrom);
+                }
+
+                if(params.blockNumberTo) {
+                    isMatch = isMatch && Number(p.transaction.blockNumber) <= Number(params.blockNumberTo);
+                }
+
+                if(params.timestampFrom) {
+                    isMatch = isMatch && Number(p.transaction.timestamp) >= Number(params.timestampFrom);
+                }
+
+                if(params.timestampTo) {
+                    isMatch = isMatch && Number(p.transaction.timestamp) <= Number(params.timestampTo);
+                }
+
+                return isMatch;
+            })
+            .sort((a, b) => {
+                const order = params.order === 'ASC' ? 1 : -1;
+
+                if(sortBy === 'blockNumber') {
+                    return Number(a.transaction.blockNumber) > Number(b.transaction.blockNumber) ? 1 * order : -1 * order;
+                }
+
+                return Number(a.transaction.timestamp) > Number(b.transaction.timestamp) ? 1 * order : -1 * order;
+            }).slice(skip, skip + limit);
+    }
+
+    getCompiledRewards(params: IGetQueryParams) {
+        const { 
+            limit = 100, 
+            skip = 0, 
+            order = 'DESC', 
+            sortBy = 'blockNumber',
+        } = params;
+
+        return this.rewards
+            .filter(r => {
+                let isMatch = true;
+
+                if(params.wallet) {
+                    isMatch = isMatch && r.wallet === params.wallet;
+                }
+
+                if(params.positionId) {
+                    isMatch = isMatch && r.tokenId === params.positionId;
+                }
+
+                if(params.blockNumberFrom) {
+                    isMatch = isMatch && Number(r.blockNumber) >= Number(params.blockNumberFrom);
+                }
+                
+                if(params.blockNumberTo) {
+                    isMatch = isMatch && Number(r.blockNumber) <= Number(params.blockNumberTo);
+                }
+
+                if(params.timestampFrom) {
+                    isMatch = isMatch && Number(r.timestamp) >= Number(params.timestampFrom);
+                }
+
+                if(params.timestampTo) {
+                    isMatch = isMatch && Number(r.timestamp) <= Number(params.timestampTo);
+                }
+
+                return isMatch;
+            })
+            .sort((a, b) => {
+                const order = params.order === 'ASC' ? 1 : -1;
+
+                if(sortBy === 'blockNumber') {
+                    return Number(a.transaction.blockNumber) > Number(b.transaction.blockNumber) ? 1 * order : -1 * order;
+                }
+
+                return Number(a.transaction.timestamp) > Number(b.transaction.timestamp) ? 1 * order : -1 * order;
+            }).slice(skip, skip + limit);
     }
 }
