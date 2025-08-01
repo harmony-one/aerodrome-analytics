@@ -14,7 +14,8 @@ export class LoaderService {
     private client = this.web3Service.getClient('base');
 
     rewardsContracts = [
-        '0x6399ed6725cC163D019aA64FF55b22149D7179A8',
+        // '0x6399ed6725cC163D019aA64FF55b22149D7179A8',
+        '0x9B55cb6cAe1e303B5EDce6F9fcf90246D382809c'
     ]
 
     trackers = {};

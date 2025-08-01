@@ -4,31 +4,17 @@ const buildWhereQuery = (filter: GetEventsFilter) => {
   let where: any = {}
   let transactionWhere = {}
 
-  if(filter.poolSymbol) {
-    where = {
-      ...where,
-      // pool_: {
-      //   symbol: filter.poolSymbol
-      // }
-      pool: '0x4e962bb3889bf030368f56810a9c96b83cb3e778',
-      // pool: '0x324963c267c354c7660ce8ca3f5f167e05649970'
-      //pool: '0xf28c748091FdaB86d5120aB359fCb471dAA6467d'
-    }
-  }
-
   if(filter.poolAddress) {
     where = {
       ...where,
       pool: filter.poolAddress,
-      //pool: '0xf28c748091FdaB86d5120aB359fCb471dAA6467d'
     }
   }
 
   if(filter.gauge) {
     where = {
       ...where,
-      // gauge: filter.gauge
-      gauge_: {clPool: "0x4e962bb3889bf030368f56810a9c96b83cb3e778"}
+      gauge_: {clPool: filter.poolAddress}
     } as any
   }
 

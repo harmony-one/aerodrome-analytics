@@ -15,7 +15,7 @@ services:
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
     volumes:
       - ./initdb.d:/docker-entrypoint-initdb.d
-      - pg:/var/lib/postgresql/data
+      - pg6:/var/lib/postgresql/data
 volumes:
-  pg:
+  pg6:
     driver: local

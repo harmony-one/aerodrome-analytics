@@ -15,7 +15,8 @@ export class LoaderService {
     private readonly logger = new Logger(LoaderService.name);
 
     pools = [
-        '0x4e962bb3889bf030368f56810a9c96b83cb3e778',
+        // '0x4e962bb3889bf030368f56810a9c96b83cb3e778',
+        '0x3e66e55e97ce60096f74b7c475e8249f2d31a9fb'
     ]
 
     latestError = '';
@@ -131,6 +132,17 @@ export class LoaderService {
     info = async () => {
         const latestData = await this.getLatestData(this.pools[0]);
         const firstData = await this.getFirstData(this.pools[0]);
+
+        if(!latestData || !firstData) {
+            return {
+                latestError: this.latestError,
+                latestData: latestData,
+                count: 0,
+                timeToLoadFormatted: 9999999999,
+                timeToLoad: 9999999999,
+                progress: 0,
+            }
+        }
 
         const count = await this.getCount();
 
