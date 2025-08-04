@@ -6,7 +6,7 @@ import { IGetQueryParams } from 'src/interfaces';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, IsInt } from 'class-validator';
 
-export class UserQueryDto implements IGetQueryParams {
+export class QueryDto implements IGetQueryParams {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -58,6 +58,33 @@ export class UserQueryDto implements IGetQueryParams {
   positionId?: string;
 }
 
+export class CompiledPositionsQueryDto extends QueryDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  minDepositedUSD?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  minApr?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  maxApr?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  minHours?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  maxHours?: number;
+}
+
 @ApiTags('stats')
 @Controller('stats')
 export class StatisticController {
@@ -67,9 +94,9 @@ export class StatisticController {
   ) { }
   @Get('/positions/:id')
   getPosition(@Param('id') id: string, @Query() query: any) {
-    if(query.walletId) {
+    if (query.walletId) {
       return this.statisticService.getPositionByWallet(query.walletId);
-    } 
+    }
 
     return this.statisticService.getInfoByPosition(id);
   }
@@ -90,22 +117,22 @@ export class StatisticController {
   }
 
   @Get('/events')
-  getEvents(@Query() query: UserQueryDto) {
+  getEvents(@Query() query: QueryDto) {
     return this.statisticService.getEvents(query);
   }
 
   @Get('/positions')
-  getPositions(@Query() query: UserQueryDto) {
+  getPositions(@Query() query: QueryDto) {
     return this.statisticService.getPositions(query);
   }
 
   @Get('/compiled-positions')
-  getCompiledPositions(@Query() query: UserQueryDto) {
+  getCompiledPositions(@Query() query: CompiledPositionsQueryDto) {
     return this.statisticService.getCompiledPositions(query);
   }
 
   @Get('/compiled-rewards')
-  getCompiledRewards(@Query() query: UserQueryDto) {
+  getCompiledRewards(@Query() query: QueryDto) {
     return this.statisticService.getCompiledRewards(query);
   }
 }

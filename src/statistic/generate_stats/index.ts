@@ -43,7 +43,7 @@ export const calculateStats = async (
         }
 
         let closePrice = poolHoursData[poolHoursDataStartIndex].token0Price;
-        let closeDate = p.transaction.timestamp;
+        let closeDate = Date.now() / 1000; // p.transaction.timestamp;
 
         let withdrawDate = rewardsWithdraw[p.id]?.[0]?.blockNumber ? 
             blockToTimestamp(rewardsWithdraw[p.id]?.[0]?.blockNumber) : 
@@ -122,7 +122,7 @@ export const calculateStats = async (
         const daysElapsed = Math.ceil((endDate - p.transaction.timestamp * 1000) / (1000 * 60 * 60 * 24));
 
         const openDateTime = p.transaction.timestamp;
-        const closeDateTime = closeDate?.timestamp || Date.now() / 1000;
+        const closeDateTime = closeDate || Date.now() / 1000;
 
         let hoursInRange = (closeDateTime - openDateTime) / 3600;
 
@@ -136,7 +136,8 @@ export const calculateStats = async (
         
         return {
             ...p,
-            apr_staking: (((p.totalUSD / depositedUSD) * (365 / daysElapsed)) * 100).toFixed(2),
+            depositedUSD,
+            apr_staking: ((((p.totalUSD || 0) / depositedUSD) * (365 / daysElapsed)) * 100).toFixed(2),
             apr_fee: (((p.totalCollected / depositedUSD) * (365 / daysElapsed)) * 100).toFixed(2),
             apr_price: (((p.tokenDiffUSD / depositedUSD) * (365 / daysElapsed)) * 100).toFixed(2),
             apr: ((((p.totalUSD + p.totalCollected) / depositedUSD) * (365 / daysElapsed)) * 100).toFixed(2),
@@ -149,6 +150,7 @@ export const calculateStats = async (
             in_range: inRange,
             hours_in_range: hoursInRange,
             hours: hoursInRange,
+            daysElapsed,
             closed: closeDate ? true : false,
             impermanent_loss: calculateImpermanentLoss({
                 depositedToken0: Number(p.depositedToken0),

@@ -5,7 +5,7 @@ import { EventA, Position, PoolHourData } from 'src/entities';
 import { IEvent, IPosition, ICompiledPosition, IPoolHourDatas } from 'src/interfaces';
 import { calculateStats } from './generate_stats/index';
 import { compileRewards } from './generate_stats/rewards-utils';
-import { IGetQueryParams } from 'src/interfaces';
+import { IGetQueryParams, IGetQueryPositionsParams } from 'src/interfaces';
 
 @Injectable()
 export class StatisticService {
@@ -260,7 +260,7 @@ export class StatisticService {
         return this.eventsRepository.find(this.generateFindParams(params));
     }
 
-    getCompiledPositions(params: IGetQueryParams) {
+    getCompiledPositions(params: IGetQueryPositionsParams) {
         const { 
             limit = 100, 
             skip = 0, 
@@ -271,6 +271,26 @@ export class StatisticService {
         return this.compiledPositions
             .filter(p => {
                 let isMatch = true;
+
+                if(params.minDepositedUSD) {
+                    isMatch = isMatch && Number(p.depositedUSD) >= Number(params.minDepositedUSD);
+                }
+
+                if(params.minApr) {
+                    isMatch = isMatch && Number(p.apr) >= Number(params.minApr);
+                }
+
+                if(params.maxApr) {
+                    isMatch = isMatch && Number(p.apr) <= Number(params.maxApr);
+                }
+
+                if(params.minHours) {
+                    isMatch = isMatch && Number(p.hours) >= Number(params.minHours);
+                }
+
+                if(params.maxHours) {
+                    isMatch = isMatch && Number(p.hours) <= Number(params.maxHours);
+                }
 
                 if(params.wallet) {
                     isMatch = isMatch && p.wallet === params.wallet;
@@ -305,7 +325,9 @@ export class StatisticService {
                     return Number(a.transaction.blockNumber) > Number(b.transaction.blockNumber) ? 1 * order : -1 * order;
                 }
 
-                return Number(a.transaction.timestamp) > Number(b.transaction.timestamp) ? 1 * order : -1 * order;
+                return Number(a[sortBy]) > Number(b[sortBy]) ? 1 * order : -1 * order;
+
+                //return Number(a.transaction.timestamp) > Number(b.transaction.timestamp) ? 1 * order : -1 * order;
             }).slice(skip, skip + limit);
     }
 

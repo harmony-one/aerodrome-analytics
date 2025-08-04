@@ -48,6 +48,7 @@ export interface ICompiledPosition extends IPosition {
     openPrice: string;
     closePrice: string;
     closeDate: number;
+    depositedUSD: number;
     rewards: {
         AERO: number;
         USD: number;
@@ -108,4 +109,12 @@ export interface IGetQueryParams {
     sortBy?: 'blockNumber' | 'timestamp';
     wallet?: string;
     positionId?: string;
+}
+
+export interface IGetQueryPositionsParams extends IGetQueryParams {
+    minDepositedUSD?: number;
+    minApr?: number;
+    maxApr?: number;
+    minHours?: number;
+    maxHours?: number;
 }
