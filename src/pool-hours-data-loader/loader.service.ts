@@ -15,8 +15,8 @@ export class LoaderService {
     private readonly logger = new Logger(LoaderService.name);
 
     pools = [
-        // '0x4e962bb3889bf030368f56810a9c96b83cb3e778',
-        '0x3e66e55e97ce60096f74b7c475e8249f2d31a9fb'
+        '0x4e962bb3889bf030368f56810a9c96b83cb3e778',
+        // '0x3e66e55e97ce60096f74b7c475e8249f2d31a9fb'
     ]
 
     latestError = '';

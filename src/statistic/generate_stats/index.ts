@@ -58,7 +58,7 @@ export const calculateStats = async (
                 if (Number(poolHoursData[i].tick) >= Number(p.tickLower.tickIdx) && Number(poolHoursData[i].tick) <= Number(p.tickUpper.tickIdx)) {
                 } else {
                     closePrice = poolHoursData[i].token0Price;
-                    closeDate = poolHoursData[i].periodStartUnix;
+                    // closeDate = poolHoursData[i].periodStartUnix;
                     break;
                 }
             }
@@ -119,7 +119,7 @@ export const calculateStats = async (
         const closeDate = p.closeDate;
         const endDate = closeDate * 1000 || Date.now();
 
-        const daysElapsed = Math.ceil((endDate - p.transaction.timestamp * 1000) / (1000 * 60 * 60 * 24));
+        const daysElapsed = (endDate - p.transaction.timestamp * 1000) / (1000 * 3600 * 24);
 
         const openDateTime = p.transaction.timestamp;
         const closeDateTime = closeDate || Date.now() / 1000;
