@@ -75,7 +75,7 @@ export class StatisticService {
         let skip = 0;
         let compiledPositions = [];
 
-        while ((!positionsFromDb || positionsFromDb.length === limit) && skip < 1000000) {
+        while ((!positionsFromDb || positionsFromDb.length === limit) && skip < 600000) {
             positionsFromDb = await this.startFn(
                 () => this.positionsRepository.find({
                     skip,
