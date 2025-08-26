@@ -109,6 +109,7 @@ export interface IGetQueryParams {
     sortBy?: 'blockNumber' | 'timestamp';
     wallet?: string;
     positionId?: string;
+    eventNames?: string[];
 }
 
 export interface IGetQueryPositionsParams extends IGetQueryParams {

@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { StatisticService } from './statistic.service';
 import { IGetQueryParams } from 'src/interfaces';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsInt } from 'class-validator';
+import { IsOptional, IsString, IsArray, IsInt } from 'class-validator';
 
 export class QueryDto implements IGetQueryParams {
   @ApiPropertyOptional()
@@ -56,6 +56,12 @@ export class QueryDto implements IGetQueryParams {
   @IsOptional()
   @IsString()
   positionId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  eventNames?: string[];
 }
 
 export class CompiledPositionsQueryDto extends QueryDto {

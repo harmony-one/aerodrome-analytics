@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Between, Repository, MoreThanOrEqual, LessThanOrEqual, In } from 'typeorm';
 import { EventA, Position, PoolHourData } from 'src/entities';
 import { IEvent, IPosition, ICompiledPosition, IPoolHourDatas } from 'src/interfaces';
 import { calculateStats } from './generate_stats/index';
@@ -40,9 +40,18 @@ export class StatisticService {
 
     async loadData() {
         let eventsFromDb = await this.startFn(
-            () => this.eventsRepository.find(),
+            () => this.eventsRepository.find({
+                order: {
+                    blockNumber: 'ASC'
+                },
+                where: {
+                    blockNumber: MoreThanOrEqual(29990000)
+                }
+            }),
             'Loading events from db'
         );
+
+        this.logger.log(`Events from db loaded: ${eventsFromDb.length}`);
 
         const { rewards, rewardsWithdraw } = await this.startFn(
             () => compileRewards(eventsFromDb),
@@ -64,13 +73,13 @@ export class StatisticService {
         let skip = 0;
         let compiledPositions = [];
 
-        while (!positionsFromDb || positionsFromDb.length === limit) {
+        while ((!positionsFromDb || positionsFromDb.length === limit) && skip < 1000000) {
             positionsFromDb = await this.startFn(
                 () => this.positionsRepository.find({
                     skip,
                     take: limit,
                     order: {
-                        blockNumber: 'ASC'
+                        blockNumber: 'DESC'
                     }
                 }),
                 'Loading positions from db'
@@ -213,7 +222,8 @@ export class StatisticService {
             timestampFrom, 
             timestampTo, 
             wallet, 
-            positionId 
+            positionId,
+            eventNames,
         } = params;
 
         const res = {
@@ -247,6 +257,10 @@ export class StatisticService {
 
         if (positionId) {
             res.where.id = positionId;
+        }
+
+        if (eventNames) {
+            res.where.eventName = In(eventNames);
         }
         
         return res;
