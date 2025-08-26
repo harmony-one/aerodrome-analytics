@@ -75,13 +75,16 @@ export class StatisticService {
         let skip = 0;
         let compiledPositions = [];
 
-        while ((!positionsFromDb || positionsFromDb.length === limit) && skip < 600000) {
+        while ((!positionsFromDb || positionsFromDb.length === limit) && skip < 1000000) {
             positionsFromDb = await this.startFn(
                 () => this.positionsRepository.find({
                     skip,
                     take: limit,
                     order: {
                         blockNumber: 'DESC'
+                    },
+                    where: {
+                        blockNumber: MoreThanOrEqual(31990000)
                     }
                 }),
                 'Loading positions from db'
