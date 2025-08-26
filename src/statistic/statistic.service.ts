@@ -45,7 +45,9 @@ export class StatisticService {
                     blockNumber: 'ASC'
                 },
                 where: {
-                    blockNumber: MoreThanOrEqual(29990000)
+                    //blockNumber: MoreThanOrEqual(29990000)
+                    blockNumber: MoreThanOrEqual(31990000)
+
                 }
             }),
             'Loading events from db'
